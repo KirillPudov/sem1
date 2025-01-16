@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -17,26 +16,11 @@ const (
 
 func loadCSVtoDB(file string) (int, error) {
 
-	db_host, exist := os.LookupEnv("POSTGRES_HOST")
-	if exist != true {
-		return 0, errors.New("ENV variable POSTGRES_HOST is not exist")
-	}
-	db_port, exist := os.LookupEnv("POSTGRES_PORT")
-	if exist != true {
-		return 0, errors.New("ENV variable POSTGRES_PORT is not exist")
-	}
-	db_user, exist := os.LookupEnv("POSTGRES_USER")
-	if exist != true {
-		return 0, errors.New("ENV variable POSTGRES_USER is not exist")
-	}
-	db_pass, exist := os.LookupEnv("POSTGRES_PASSWORD")
-	if exist != true {
-		return 0, errors.New("ENV variable POSTGRES_PASSWORD is not exist")
-	}
-	db_database, exist := os.LookupEnv("POSTGRES_DB")
-	if exist != true {
-		return 0, errors.New("ENV variable POSTGRES_DB is not exist")
-	}
+	db_host := os.Getenv("POSTGRES_HOST")
+	db_port := os.Getenv("POSTGRES_PORT")
+	db_user := os.Getenv("POSTGRES_USER")
+	db_pass := os.Getenv("POSTGRES_PASSWORD")
+	db_database := os.Getenv("POSTGRES_DB")
 
 	// db_host := ""
 	// db_port := 5432
@@ -80,26 +64,11 @@ func loadCSVtoDB(file string) (int, error) {
 
 func getResponceData(total_items int) (*Responce, error) {
 
-	db_host, exist := os.LookupEnv("POSTGRES_HOST")
-	if exist != true {
-		return nil, errors.New("ENV variable POSTGRES_HOST is not exist")
-	}
-	db_port, exist := os.LookupEnv("POSTGRES_PORT")
-	if exist != true {
-		return nil, errors.New("ENV variable POSTGRES_PORT is not exist")
-	}
-	db_user, exist := os.LookupEnv("POSTGRES_USER")
-	if exist != true {
-		return nil, errors.New("ENV variable POSTGRES_USER is not exist")
-	}
-	db_pass, exist := os.LookupEnv("POSTGRES_PASSWORD")
-	if exist != true {
-		return nil, errors.New("ENV variable POSTGRES_PASSWORD is not exist")
-	}
-	db_database, exist := os.LookupEnv("POSTGRES_DB")
-	if exist != true {
-		return nil, errors.New("ENV variable POSTGRES_DB is not exist")
-	}
+	db_host := os.Getenv("POSTGRES_HOST")
+	db_port := os.Getenv("POSTGRES_PORT")
+	db_user := os.Getenv("POSTGRES_USER")
+	db_pass := os.Getenv("POSTGRES_PASSWORD")
+	db_database := os.Getenv("POSTGRES_DB")
 
 	// db_host := ""
 	// db_port := 5432
@@ -151,26 +120,11 @@ func getResponceData(total_items int) (*Responce, error) {
 }
 
 func exportToCSV() error {
-	db_host, exist := os.LookupEnv("POSTGRES_HOST")
-	if exist != true {
-		return errors.New("ENV variable POSTGRES_HOST is not exist")
-	}
-	db_port, exist := os.LookupEnv("POSTGRES_PORT")
-	if exist != true {
-		return errors.New("ENV variable POSTGRES_PORT is not exist")
-	}
-	db_user, exist := os.LookupEnv("POSTGRES_USER")
-	if exist != true {
-		return errors.New("ENV variable POSTGRES_USER is not exist")
-	}
-	db_pass, exist := os.LookupEnv("POSTGRES_PASSWORD")
-	if exist != true {
-		return errors.New("ENV variable POSTGRES_PASSWORD is not exist")
-	}
-	db_database, exist := os.LookupEnv("POSTGRES_DB")
-	if exist != true {
-		return errors.New("ENV variable POSTGRES_DB is not exist")
-	}
+	db_host := os.Getenv("POSTGRES_HOST")
+	db_port := os.Getenv("POSTGRES_PORT")
+	db_user := os.Getenv("POSTGRES_USER")
+	db_pass := os.Getenv("POSTGRES_PASSWORD")
+	db_database := os.Getenv("POSTGRES_DB")
 	// db_host := ""
 	// db_port := 5432
 	// db_user := ""
