@@ -63,7 +63,7 @@ func handleRequest(res http.ResponseWriter, req *http.Request) {
 func uploadData(res http.ResponseWriter, req *http.Request) {
 	req.ParseMultipartForm(10 << 20)
 
-	file, handler, err := req.FormFile("data")
+	file, handler, err := req.FormFile("file")
 
 	if err != nil {
 		http.Error(res, err.Error(), 500)

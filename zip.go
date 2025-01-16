@@ -36,7 +36,7 @@ func createZip() error {
 
 	zipWriter := zip.NewWriter(archive)
 
-	csv_file, err := os.OpenFile("data.csv", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 777)
+	csv_file, err := os.Open("data.csv")
 
 	defer zipWriter.Close()
 
