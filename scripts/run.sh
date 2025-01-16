@@ -1,3 +1,3 @@
 #!/bin/bash
 set -e
-chmod +x server && ./server
+go run main.go

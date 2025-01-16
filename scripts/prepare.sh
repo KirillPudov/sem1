@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 go mod tidy
-go build -buildvcs=false -o server
+#go build -buildvcs=false -o server
 
 export PGPASSWORD=val1dat0r
 
