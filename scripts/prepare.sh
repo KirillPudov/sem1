@@ -1,10 +1,6 @@
 #!/bin/bash
 set -x
 go mod tidy
-export GOBIN=/usr/local/bin
-go install -buildvcs=false
-
-chmod +x /usr/local/bin/project_sem
 
 export PGPASSWORD=val1dat0r
 
