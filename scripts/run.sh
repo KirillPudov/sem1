@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 chmod +x server
-exec server
+bash project_sem
