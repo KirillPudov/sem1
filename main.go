@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -32,11 +33,18 @@ type Responce struct {
 	Total_price      float64 `json:"total_price"`
 }
 
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v0/prices", handleRequest)
 
-	err := http.ListenAndServe(":8080", mux)
+	err := http.ListenAndServe(":8000", mux)
 
 	if err != nil {
 		panic(err)

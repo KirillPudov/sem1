@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gocarina/gocsv"
@@ -16,17 +17,20 @@ const (
 
 func loadCSVtoDB(file string) (int, error) {
 
-	db_host := os.Getenv("POSTGRES_HOST")
-	db_port := os.Getenv("POSTGRES_PORT")
-	db_user := os.Getenv("POSTGRES_USER")
-	db_pass := os.Getenv("POSTGRES_PASSWORD")
-	db_database := os.Getenv("POSTGRES_DB")
+	db_host := os.Getenv("DB_HOST")
+	db_port, err := strconv.Atoi(os.Getenv("DB_PORT"))
+	db_user := os.Getenv("DB_USER")
+	db_pass := os.Getenv("DB_PASSWORD")
+	db_database := os.Getenv("DB_NAME")
 
-	// db_host := ""
+	if err != nil {
+		return 0, err
+	}
+	// db_host := "localhost"
 	// db_port := 5432
-	// db_user := ""
-	// db_pass := ""
-	// db_database := ""
+	// db_user := "validator"
+	// db_pass := "val1dat0r"
+	// db_database := "project-sem-1"
 
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", db_host, db_port, db_user, db_pass, db_database)
 
@@ -64,11 +68,15 @@ func loadCSVtoDB(file string) (int, error) {
 
 func getResponceData(total_items int) (*Responce, error) {
 
-	db_host := os.Getenv("POSTGRES_HOST")
-	db_port := os.Getenv("POSTGRES_PORT")
-	db_user := os.Getenv("POSTGRES_USER")
-	db_pass := os.Getenv("POSTGRES_PASSWORD")
-	db_database := os.Getenv("POSTGRES_DB")
+	db_host := os.Getenv("DB_HOST")
+	db_port, err := strconv.Atoi(os.Getenv("DB_PORT"))
+	db_user := os.Getenv("DB_USER")
+	db_pass := os.Getenv("DB_PASSWORD")
+	db_database := os.Getenv("DB_NAME")
+
+	if err != nil {
+		return nil, err
+	}
 
 	// db_host := ""
 	// db_port := 5432
@@ -120,11 +128,15 @@ func getResponceData(total_items int) (*Responce, error) {
 }
 
 func exportToCSV() error {
-	db_host := os.Getenv("POSTGRES_HOST")
-	db_port := os.Getenv("POSTGRES_PORT")
-	db_user := os.Getenv("POSTGRES_USER")
-	db_pass := os.Getenv("POSTGRES_PASSWORD")
-	db_database := os.Getenv("POSTGRES_DB")
+	db_host := os.Getenv("DB_HOST")
+	db_port, err := strconv.Atoi(os.Getenv("DB_PORT"))
+	db_user := os.Getenv("DB_USER")
+	db_pass := os.Getenv("DB_PASSWORD")
+	db_database := os.Getenv("DB_NAME")
+
+	if err != nil {
+		return err
+	}
 	// db_host := ""
 	// db_port := 5432
 	// db_user := ""
