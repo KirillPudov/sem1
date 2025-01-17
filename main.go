@@ -44,7 +44,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v0/prices", handleRequest)
 
-	err := http.ListenAndServe(":8000", mux)
+	err := http.ListenAndServe(":8080", mux)
 
 	if err != nil {
 		panic(err)

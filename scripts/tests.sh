@@ -55,7 +55,7 @@ check_api_simple() {
     
     # Проверка POST /api/v0/prices
     echo "Тестирование POST /api/v0/prices"
-    response=$(curl -s -F "file=@$TEST_ZIP" "${API_HOST}/api/v0/prices")
+    response=$(curl -XPOST -s -F "file=@$TEST_ZIP" "${API_HOST}/api/v0/prices")
     if [[ $response == *"total_items"* && $response == *"total_categories"* && $response == *"total_price"* ]]; then
         echo -e "${GREEN}✓ POST запрос успешен${NC}"
         

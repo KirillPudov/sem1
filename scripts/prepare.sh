@@ -1,5 +1,8 @@
 #!/bin/bash
 set -x
+
+apt update && apt install zip curl -y
+
 go mod tidy
 
 go build -buildvcs=false -o server
