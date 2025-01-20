@@ -1,11 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
+	"strconv"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -33,6 +35,10 @@ type Responce struct {
 	Total_price      float64 `json:"total_price"`
 }
 
+type DB struct {
+	conn *sql.DB
+}
+
 func init() {
 	err := godotenv.Load()
 	if err != nil {
@@ -51,20 +57,39 @@ func main() {
 	}
 }
 func handleRequest(res http.ResponseWriter, req *http.Request) {
+
+	db_host := os.Getenv("DB_HOST")
+	db_port, err := strconv.Atoi(os.Getenv("DB_PORT"))
+	db_user := os.Getenv("DB_USER")
+	db_pass := os.Getenv("DB_PASSWORD")
+	db_database := os.Getenv("DB_NAME")
+
+	if err != nil {
+		fmt.Errorf(err.Error())
+		return
+	}
+
+	db_conn, err := InitDb(db_host, db_port, db_user, db_pass, db_database)
+
+	if err != nil {
+		fmt.Errorf(err.Error())
+		return
+	}
+
 	if req.Method == http.MethodPost {
-		uploadData(res, req)
+		uploadData(res, req, db_conn)
 	} else if req.Method == http.MethodGet {
-		giveData(res, req)
+		giveData(res, req, db_conn)
 	} else {
 		http.Error(res, "Only GET or POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
 	}
 }
 
-func uploadData(res http.ResponseWriter, req *http.Request) {
+func uploadData(res http.ResponseWriter, req *http.Request, db_conn *DB) {
 	req.ParseMultipartForm(10 << 20)
 
-	file, handler, err := req.FormFile("file")
+	file, _, err := req.FormFile("file")
 
 	if err != nil {
 		http.Error(res, err.Error(), 500)
@@ -73,19 +98,9 @@ func uploadData(res http.ResponseWriter, req *http.Request) {
 
 	defer file.Close()
 
-	file_path := filepath.Join(os.TempDir(), handler.Filename)
+	body, err := io.ReadAll(file)
 
-	dst, err := os.Create(file_path)
-	if err != nil {
-		http.Error(res, err.Error(), 500)
-		return
-	}
-
-	defer dst.Close()
-
-	io.Copy(dst, file)
-
-	resp, err := unzipAndInsertToDB(file_path)
+	resp, err := unzipAndInsertToDB(body, db_conn)
 
 	if err != nil {
 		http.Error(res, err.Error(), 500)

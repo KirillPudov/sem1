@@ -1,56 +1,48 @@
 package main
 
 import (
-	"io"
+	"archive/zip"
 	"net/http"
 	"os"
 	"strconv"
-
-	"archive/zip"
 )
 
-func giveData(res http.ResponseWriter, req *http.Request) {
-	err := exportToCSV()
-	if err != nil {
-		http.Error(res, err.Error(), 500)
-		return
-	}
+func giveData(res http.ResponseWriter, req *http.Request, db *DB) error {
 
-	err = createZip()
-	if err != nil {
-		http.Error(res, err.Error(), 500)
-		return
-	}
+	file_wr := createZip(res, req, db)
 
 	res.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote("data.zip"))
 	res.Header().Set("Content-Type", "application/octet-stream")
 
-	http.ServeFile(res, req, "data.zip")
+	http.ServeFile(res, req, file_wr)
 
+	clearFiles(file_wr)
+
+	return nil
 }
 
-func createZip() error {
+func createZip(res http.ResponseWriter, req *http.Request, db *DB) string {
 	archive, err := os.Create("data.zip")
+
+	w := zip.NewWriter(archive)
+
+	csv_file, err := w.Create("data.csv")
 
 	defer archive.Close()
 
-	zipWriter := zip.NewWriter(archive)
-
-	csv_file, err := os.Open("data.csv")
-
-	defer zipWriter.Close()
+	err = db.exportToCSV(csv_file)
 
 	if err != nil {
-		return err
+		http.Error(res, err.Error(), 500)
+		return ""
 	}
 
-	defer csv_file.Close()
+	w.Close()
 
-	zip_archive, err := zipWriter.Create("data.csv")
+	return archive.Name()
 
-	if _, err := io.Copy(zip_archive, csv_file); err != nil {
-		return err
-	}
+}
 
-	return nil
+func clearFiles(file string) error {
+	return os.Remove(file)
 }

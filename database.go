@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"math"
-	"os"
-	"strconv"
-	"time"
 
 	"github.com/gocarina/gocsv"
 )
@@ -15,163 +15,113 @@ const (
 	layoutISO = "2006-01-02"
 )
 
-func loadCSVtoDB(file string) (int, error) {
-
-	db_host := os.Getenv("DB_HOST")
-	db_port, err := strconv.Atoi(os.Getenv("DB_PORT"))
-	db_user := os.Getenv("DB_USER")
-	db_pass := os.Getenv("DB_PASSWORD")
-	db_database := os.Getenv("DB_NAME")
-
-	if err != nil {
-		return 0, err
-	}
-	// db_host := "localhost"
-	// db_port := 5432
-	// db_user := "validator"
-	// db_pass := "val1dat0r"
-	// db_database := "project-sem-1"
-
+func InitDb(db_host string, db_port int, db_user string, db_pass string, db_database string) (*DB, error) {
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", db_host, db_port, db_user, db_pass, db_database)
 
-	db, err := sql.Open("postgres", psqlconn)
+	db_conn, err := sql.Open("postgres", psqlconn)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	file_entry, err := os.Open(file)
-	if err != nil {
-		return 0, err
-	}
+	return &DB{
+		conn: db_conn,
+	}, err
+}
+
+func (db *DB) loadCSVtoDB(file io.ReadCloser) (*Responce, error) {
+
+	csv_reader := csv.NewReader(file)
+	csv_reader.Comma = ','
+	csv_reader.LazyQuotes = true
 
 	var entries []Entity
-	err = gocsv.UnmarshalFile(file_entry, &entries)
+	err := gocsv.UnmarshalCSV(csv_reader, &entries)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	var total_items int
+	var total_price float64
+	var categories []string
+
+	fail := func(err error) (*Responce, error) {
+		return nil, fmt.Errorf("%v", err)
+	}
+
+	ctx := context.Background()
+
+	tx, err := db.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return fail(err)
+	}
+
+	defer tx.Rollback()
 
 	for _, entry := range entries {
-		parse_date, _ := time.Parse(layoutISO, entry.Create_date)
-		date := parse_date.Format(layoutISO)
-		insert := `insert into prices(id, name, category, price, create_date) values ($1, $2, $3, $4, $5);`
-		_, err := db.Exec(insert, entry.Id, entry.Name, entry.Category, entry.Price, date)
+		// parse_date, _ := time.Parse(layoutISO, entry.Create_date)
+		// date := parse_date.Format(layoutISO)
+		_, err := tx.ExecContext(ctx, `insert into prices(name, category, price, create_date) values ($1, $2, $3, $4);`, entry.Name, entry.Category, entry.Price, entry.Create_date)
 		if err != nil {
-			return 0, err
+			return fail(err)
 		}
 		total_items += 1
+		total_price = total_price + entry.Price
+		categories = append(categories, entry.Category)
 	}
 
-	return total_items, nil
-}
+	m := make(map[string]int)
 
-func getResponceData(total_items int) (*Responce, error) {
-
-	db_host := os.Getenv("DB_HOST")
-	db_port, err := strconv.Atoi(os.Getenv("DB_PORT"))
-	db_user := os.Getenv("DB_USER")
-	db_pass := os.Getenv("DB_PASSWORD")
-	db_database := os.Getenv("DB_NAME")
-
-	if err != nil {
-		return nil, err
-	}
-
-	// db_host := ""
-	// db_port := 5432
-	// db_user := ""
-	// db_pass := ""
-	// db_database := ""
-
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", db_host, db_port, db_user, db_pass, db_database)
-
-	db, err := sql.Open("postgres", psqlconn)
-	if err != nil {
-		return nil, err
-	}
-
-	categories, err := db.Query(`SELECT count("category") FROM prices;`)
-	defer categories.Close()
-
-	if err != nil {
-		return nil, err
-	}
-	var total_categories []int
-
-	for categories.Next() {
-		var categorie int
-		if err := categories.Scan(&categorie); err != nil {
-			return nil, err
+	for _, v := range categories {
+		i := 0
+		_, ok := m[v]
+		if ok {
+			continue
+		} else {
+			m[v] = i
+			i++
 		}
-		total_categories = append(total_categories, categorie)
 	}
 
-	prices, err := db.Query(`SELECT sum("price") FROM prices;`)
-	defer prices.Close()
+	total_categories := len(m)
 
-	var total_price []float64
-
-	for prices.Next() {
-		var price float64
-		if err := prices.Scan(&price); err != nil {
-			return nil, err
-		}
-		total_price = append(total_price, price)
+	err = tx.Commit()
+	if err != nil {
+		return fail(err)
 	}
 
 	return &Responce{
 		Total_items:      total_items,
-		Total_categories: total_categories[0],
-		Total_price:      math.Round(total_price[0]*100) / 100,
+		Total_categories: total_categories,
+		Total_price:      math.Round(total_price*100) / 100,
 	}, nil
 }
 
-func exportToCSV() error {
-	db_host := os.Getenv("DB_HOST")
-	db_port, err := strconv.Atoi(os.Getenv("DB_PORT"))
-	db_user := os.Getenv("DB_USER")
-	db_pass := os.Getenv("DB_PASSWORD")
-	db_database := os.Getenv("DB_NAME")
+func (db *DB) exportToCSV(file io.Writer) error {
 
-	if err != nil {
-		return err
-	}
-	// db_host := ""
-	// db_port := 5432
-	// db_user := ""
-	// db_pass := ""
-	// db_database := ""
-
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", db_host, db_port, db_user, db_pass, db_database)
-
-	db, err := sql.Open("postgres", psqlconn)
-	if err != nil {
-		return err
+	fail := func(err error) error {
+		return fmt.Errorf("%v", err)
 	}
 
-	all, err := db.Query(`SELECT * FROM prices;`)
+	all, err := db.conn.Query(`SELECT * FROM prices;`)
 	defer all.Close()
 
 	if err != nil {
 		return err
 	}
 
-	var csv []Entity
+	var csv_entity []Entity
 
 	for all.Next() {
 		var csv_str Entity
 		if err := all.Scan(&csv_str.Id, &csv_str.Name, &csv_str.Category, &csv_str.Price, &csv_str.Create_date); err != nil {
-			return err
+			return fail(err)
 		}
-		csv = append(csv, csv_str)
+		csv_entity = append(csv_entity, csv_str)
 	}
 
-	dst, err := os.Create("data.csv")
+	csv_wr := csv.NewWriter(file)
 
-	srcFile, err := os.OpenFile(dst.Name(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 777)
-
-	err = gocsv.Marshal(csv, srcFile)
+	err = gocsv.MarshalCSV(csv_entity, csv_wr)
 	if err != nil {
 		return err
 	}

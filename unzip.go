@@ -2,66 +2,45 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 )
 
-func unzipAndInsertToDB(file string) (*Responce, error) {
+func unzipAndInsertToDB(body []byte, db_conn *DB) (*Responce, error) {
 
-	files, err := zip.OpenReader(file)
+	zipRead, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+
 	if err != nil {
 		return nil, err
 	}
 
-	defer files.Close()
+	var ansv *Responce
 
-	var total_items int
-
-	for _, file := range files.File {
-
-		file_path := file.Name
+	for _, file := range zipRead.File {
 
 		defer handlePanic()
 
 		if file.FileInfo().IsDir() {
-			if err := os.MkdirAll(file_path, os.ModePerm); err != nil {
-				panic(err)
-			}
 			continue
 		}
 
 		defer handlePanic()
 
-		if err := os.MkdirAll(filepath.Dir(file_path), os.ModePerm); err != nil {
-			panic(err)
-		}
+		read_file, err := file.Open()
 
-		dstFile, err := os.OpenFile(file_path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 		if err != nil {
 			return nil, err
 		}
 
-		srcFile, err := file.Open()
+		ans, err := db_conn.loadCSVtoDB(read_file)
 		if err != nil {
 			return nil, err
 		}
 
-		if _, err := io.Copy(dstFile, srcFile); err != nil {
-			return nil, err
-		}
-
-		total_items, err = loadCSVtoDB(file_path)
-		if err != nil {
-			return nil, err
-		}
-
-		defer dstFile.Close()
-		defer srcFile.Close()
+		ansv = ans
 	}
 
-	return getResponceData(total_items)
+	return ansv, nil
 
 }
 
