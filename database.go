@@ -42,7 +42,7 @@ func (db *DB) loadCSVtoDB(file io.ReadCloser) (*Responce, error) {
 
 	var total_items int
 	var total_price float64
-	var categories []string
+	var total_categories int
 
 	fail := func(err error) (*Responce, error) {
 		return nil, fmt.Errorf("%v", err)
@@ -64,25 +64,28 @@ func (db *DB) loadCSVtoDB(file io.ReadCloser) (*Responce, error) {
 		if err != nil {
 			return fail(err)
 		}
-		total_items += 1
-		total_price = total_price + entry.Price
-		categories = append(categories, entry.Category)
 	}
 
-	m := make(map[string]int)
-
-	for _, v := range categories {
-		i := 0
-		_, ok := m[v]
-		if ok {
-			continue
-		} else {
-			m[v] = i
-			i++
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) from prices;").Scan(&total_items); err != nil {
+		if err == sql.ErrNoRows {
+			return fail(fmt.Errorf("Total items error"))
 		}
+		return fail(err)
 	}
 
-	total_categories := len(m)
+	if err = tx.QueryRowContext(ctx, "SELECT sum(price) from prices;").Scan(&total_price); err != nil {
+		if err == sql.ErrNoRows {
+			return fail(fmt.Errorf("Total price error"))
+		}
+		return fail(err)
+	}
+
+	if err = tx.QueryRowContext(ctx, "SELECT COUNT(DISTINCT(category)) from prices;").Scan(&total_categories); err != nil {
+		if err == sql.ErrNoRows {
+			return fail(fmt.Errorf("Category error"))
+		}
+		return fail(err)
+	}
 
 	err = tx.Commit()
 	if err != nil {
@@ -113,7 +116,7 @@ func (db *DB) exportToCSV(file io.Writer) error {
 
 	for all.Next() {
 		var csv_str Entity
-		if err := all.Scan(&csv_str.Id, &csv_str.Name, &csv_str.Category, &csv_str.Price, &csv_str.Create_date); err != nil {
+		if err := all.Scan(&csv_str.Id, &csv_str.Name, &csv_str.Category, &csv_str.Price, &csv_str.Create_date); err == sql.ErrNoRows {
 			return fail(err)
 		}
 		csv_entity = append(csv_entity, csv_str)
